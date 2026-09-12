@@ -86,7 +86,6 @@ The orchestrator component that manages state lifecycles and switching logic.
 | `@export var initial_state: State` | The fallback default state upon startup. Defaults to the first child state if unassigned. |
 | `var current_state: State` | A reference to the currently active state node. |
 
----
 
 ## License
 
