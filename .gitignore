@@ -1,10 +1,4 @@
-# Godot 4+ specific ignores
-*.import
+*.cache
+*.md5
+/.godot
 *.godot
-*.uid
-*.svg
-
-.gitattributes
-.editorconfig
-.godot/
-/android/
