@@ -11,6 +11,7 @@ export.cfg
 export_credentials.cfg
 *.godot
 *.tmp
+*.uid
 
 # Imported translations (automatically generated from CSV files)
 *.translation
