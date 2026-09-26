@@ -15,9 +15,6 @@ var states: Dictionary = {}
 
 
 func _ready() -> void:
-	# Wait for the owner to be ready so sibling/parent nodes are fully initialized.
-	await owner.ready
-
 	for child in get_children():
 		if child is State:
 			var key := StringName(child.name.to_lower())
