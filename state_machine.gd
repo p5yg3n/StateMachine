@@ -18,6 +18,9 @@ func _ready() -> void:
 	for child in get_children():
 		if child is State:
 			var key := StringName(child.name.to_lower())
+			if states.has(key):
+				push_warning("StateMachine: Duplicate state name '%s'." % child.name)
+
 			states[key] = child
 			child.transitioned.connect(_on_child_transition)
 			child.state_machine = self
