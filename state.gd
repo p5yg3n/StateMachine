@@ -17,6 +17,9 @@ var actor: Node:
 ## Called when the node enters the scene tree.
 ## Disables all automatic processing by default; processing is handled manually by the state machine when active.
 func _ready() -> void:
+	if actor == null:
+		actor = get_parent()
+
 	set_process(false)
 	set_physics_process(false)
 	set_process_unhandled_input(false)
