@@ -4,20 +4,19 @@ extends Node
 ## Emitted when the state wants to switch to a different state, optionally passing data.
 signal transitioned(new_state_name: StringName, msg: Dictionary)
 
+## Optional explicit identifier for this state. If empty, the node name (lowercase) is used.
+@export var state_id: StringName = &""
+
 ## A reference to the parent state machine managing this state.
 var state_machine: StateMachine
 
-## A convenience for the node being controlled by the state machine (e.g., the player or enemy).
-## Assumes the parent StateMachine has an 'actor' property defined.
+## A convenience reference to the node being controlled by the state machine.
 var actor: Node
 
 
 ## Called when the node enters the scene tree.
-## Disables all automatic processing by default; processing is handled manually by the state machine when active.
+## Disables automatic processing by default; processing is handled manually by the state machine when active.
 func _ready() -> void:
-	if actor == null and state_machine and state_machine.get_parent():
-		actor = state_machine.get_parent()
-
 	set_process(false)
 	set_physics_process(false)
 	set_process_unhandled_input(false)
