@@ -7,15 +7,9 @@ signal transitioned(new_state_name: StringName, msg: Dictionary)
 ## A reference to the parent state machine managing this state.
 var state_machine: StateMachine
 
-## A convenience getter for the node being controlled by the state machine (e.g., the player or enemy).
+## A convenience for the node being controlled by the state machine (e.g., the player or enemy).
 ## Assumes the parent StateMachine has an 'actor' property defined.
-var actor: Node:
-	get:
-		if state_machine and state_machine.actor:
-			return state_machine.actor
-		if state_machine and state_machine.get_parent():
-			return state_machine.get_parent()
-		return get_parent()
+var actor: Node
 
 
 ## Called when the node enters the scene tree.
