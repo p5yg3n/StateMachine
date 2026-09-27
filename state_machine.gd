@@ -11,8 +11,11 @@ extends Node
 ## The currently active state node.
 var current_state: State
 
-## Dictionary mapping state keys (StringName) to State node references for O(1) lookups.
+## Dictionary mapping lowercase state keys to State node references.
 var states: Dictionary = {}
+
+## Stores a requested transition if the current state is locked (`can_exit() == false`).
+var _pending_transition: Dictionary = {}
 
 
 func _ready() -> void:
@@ -48,11 +51,13 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if current_state:
 		current_state.update(delta)
+	_check_pending_transition()
 
 
 func _physics_process(delta: float) -> void:
 	if current_state:
 		current_state.physics_update(delta)
+	_check_pending_transition()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -60,7 +65,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		current_state.handle_input(event)
 
 
-## Handles transitioning between states, passing the [param msg] dictionary payload to the new state's enter() function.
+## Handles transitioning between states, queueing if the current state is locked.
+## Passes the optional [msg] dictionary payload to the new state's enter() function.
 func _on_child_transition(new_state_name: StringName, msg: Dictionary = {}) -> void:
 	var key := StringName(new_state_name.to_lower())
 
@@ -69,7 +75,31 @@ func _on_child_transition(new_state_name: StringName, msg: Dictionary = {}) -> v
 		push_warning("StateMachine: State '%s' does not exist." % new_state_name)
 		return
 
-	# Handle self-transitions or normal switches
+	# If the current state cannot be exited yet, buffer the transition request
+	if current_state and not current_state.can_exit():
+		_pending_transition = {"key": key, "msg": msg}
+		return
+
+	_execute_transition(new_state, msg)
+
+
+## Checks if a queued transition can now execute because the state unlocked.
+func _check_pending_transition() -> void:
+	if _pending_transition.is_empty():
+		return
+
+	if current_state and current_state.can_exit():
+		var next_key: StringName = _pending_transition["key"]
+		var next_msg: Dictionary = _pending_transition["msg"]
+		_pending_transition.clear()
+
+		var next_state: State = states.get(next_key)
+		if next_state:
+			_execute_transition(next_state, next_msg)
+
+
+## Internal helper to handle clean switching and self-transitions.
+func _execute_transition(new_state: State, msg: Dictionary) -> void:
 	if current_state == new_state:
 		current_state.exit()
 		current_state.enter(msg)

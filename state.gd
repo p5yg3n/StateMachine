@@ -22,6 +22,19 @@ func _ready() -> void:
 	set_process_unhandled_input(false)
 
 
+## Safely retrieves the actor reference, issuing a warning if it is null.
+func get_actor() -> Node:
+	if not actor:
+		push_warning("State '%s': Attempted to access 'actor', but it is null or unassigned." % name)
+	return actor
+
+
+## Returns whether this state can currently be exited. 
+## Override this to lock a state (e.g., during an un-interruptible attack animation).
+func can_exit() -> bool:
+	return true
+
+
 ## Called by the state machine when entering this state.
 ## The optional [_msg] dictionary can carry data from the previous state.
 func enter(_msg: Dictionary = {}) -> void:

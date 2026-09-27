@@ -11,7 +11,8 @@ A clean, robust, and production-ready Finite State Machine implementation for Go
 * **Automatic Node Discovery:** Automatically detects, registers, and maps all child `State` nodes on startup.
 * **Custom State IDs:** Easily override default node-name lookups using a custom `state_id` property.
 * **Optimized Performance:** States disable their own processing by default; the state machine selectively ticks *only* the currently active state.
-* **Smart Actor Propagation:** Automatically pushes actor references down to child states to eliminate boilerplate code and manual casting.
+* **Smart Actor Propagation & Null-Guarding:** Automatically pushes actor references down to child states, featuring a safe `get_actor()` helper method to prevent runtime crashes and warn you if an actor is unassigned.
+* **Transition Queueing & Buffering:** Supports state locking (`can_exit()`), automatically queueing and buffering transition requests so inputs or animations are never abruptly cut short.
 * **Self-Transitions:** Supports clean self-restarts and payload updates when a state transitions back to itself.
 
 ---
@@ -29,23 +30,38 @@ A clean, robust, and production-ready Finite State Machine implementation for Go
 
 Attach the `state_machine.gd` script to a `Node` placed as a child of your character (e.g., `CharacterBody2D` or `CharacterBody3D`). The state machine will automatically target its direct parent as the `actor` if left unassigned in the inspector.
 
-### 2. Creating an Individual State
+### 2. Creating an Individual State (with Locks & Buffering)
 
-Create a new script that extends `State` and override the virtual lifecycle methods as needed:
+Create a new script that extends `State` and override the virtual lifecycle methods. You can use `can_exit()` to lock a state (such as an un-interruptible attack animation) so that incoming transition requests are safely buffered until the state finishes:
 
 ```gdscript
-class_name PlayerIdleState
+class_name PlayerAttackState
 extends State
 
+var is_locked: bool = true
+
 func enter(msg: Dictionary = {}) -> void:
-	# Reset animations, velocity, or timers when entering idle
-	actor.velocity = Vector2.ZERO
-	# actor.animation_player.play("idle")
+	is_locked = true
+	var player = get_actor() as CharacterBody2D
+	if not player:
+		return
+		
+	player.velocity = Vector2.ZERO
+	# player.animation_player.play("attack")
+	
+	# Simulate attack recovery lockout duration
+	await get_tree().create_timer(0.4).timeout
+	is_locked = false
+
+# Locks the state machine from switching away until the action completes
+func can_exit() -> bool:
+	return not is_locked
 
 func physics_update(delta: float) -> void:
-	# Check for transition conditions and pass optional payloads
-	if Input.is_action_pressed("move_right") or Input.is_action_pressed("move_left"):
-		transitioned.emit("PlayerMoveState", {"speed": 300.0})
+	# If the player inputs another action while locked, it gets buffered 
+	# and fires automatically the exact instant is_locked becomes true!
+	if Input.is_action_just_pressed("jump"):
+		transitioned.emit("PlayerJumpState")
 
 ```
 
@@ -57,7 +73,7 @@ Player (CharacterBody2D)
 ├── CollisionShape2D
 └── StateMachine (Node) [Script: state_machine.gd]
 	├── IdleState (Node) [Script: PlayerIdleState.gd]
-	├── MoveState (Node) [Script: PlayerMoveState.gd]
+	├── AttackState (Node) [Script: PlayerAttackState.gd]
 	└── JumpState (Node) [Script: PlayerJumpState.gd]
 
 ```
@@ -75,6 +91,8 @@ The base class for all individual states. Inherit from this to build custom beha
 | `signal transitioned(new_state_name, msg)` | Emitted to request a switch to a new state by name, optionally sending a data dictionary payload. |
 | `@export var state_id: StringName` | Optional explicit identifier for lookups. If left blank, defaults to the node's lowercase name. |
 | `var actor` | Convenience reference pointing to the main entity node being controlled. |
+| `get_actor() -> Node` | Safely returns the actor reference, throwing a helpful warning if unassigned to prevent crashes. |
+| `can_exit() -> bool` | Returns whether the state can be exited. Override to lock states (e.g., attacks, dashes) and trigger transition buffering. |
 | `enter(msg: Dictionary)` | Called once when the state becomes active. |
 | `exit()` | Called once right before switching away from this state. |
 | `update(delta)` | Called every frame (`_process`) while active. |
@@ -85,7 +103,7 @@ The base class for all individual states. Inherit from this to build custom beha
 
 ### `StateMachine.gd`
 
-The orchestrator component that manages state lifecycles, routing, and switching logic.
+The orchestrator component that manages state lifecycles, routing, buffering, and switching logic.
 
 | Export / Variable | Description |
 | --- | --- |
