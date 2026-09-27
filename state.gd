@@ -11,7 +11,9 @@ var state_machine: StateMachine
 ## Assumes the parent StateMachine has an 'actor' property defined.
 var actor: Node:
 	get:
-		return state_machine.actor if state_machine else null
+		if state_machine and state_machine.actor:
+			return state_machine.actor
+		return get_parent()
 
 
 ## Called when the node enters the scene tree.
