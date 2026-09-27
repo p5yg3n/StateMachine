@@ -13,14 +13,16 @@ var actor: Node:
 	get:
 		if state_machine and state_machine.actor:
 			return state_machine.actor
+		if state_machine and state_machine.get_parent():
+			return state_machine.get_parent()
 		return get_parent()
 
 
 ## Called when the node enters the scene tree.
 ## Disables all automatic processing by default; processing is handled manually by the state machine when active.
 func _ready() -> void:
-	if actor == null:
-		actor = get_parent()
+	if actor == null and state_machine and state_machine.get_parent():
+		actor = state_machine.get_parent()
 
 	set_process(false)
 	set_physics_process(false)
